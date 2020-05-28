@@ -35,7 +35,7 @@ namespace ConsoleApp2
         static string serverIp = "167.220.255.0";
         static void Main(string[] args)
         {
-            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwNjI4MDI3LCJuYmYiOjE1OTA2MjgwMjcsImV4cCI6MTU5MDYzMTkyNywiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBdVRHR1ZmR2VrZEVWaXcxWFJ6TFp3V1RkVXhOV3Qwc0tYeEROVHRHZzg5VWwwZnpRT1dMaEQzKytpOXVsdlZrQU1kOGh0ZDc3UnVDK1huR0hkTnMyRG1wRkZvTzNERjJPWDVyRUpMSjNUUFk9IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6IlRDSFkwVWkwTVVLR2NJdjFWVXdaQUEiLCJ2ZXIiOiIxLjAifQ.IGsn2EbqkcLbC3PkOQEsGTDucazunfUlmvvWM4YCUFDPlIaFLl77HzMVQBLT5AEL_8zhVCl76LZ8F5lyF43i4h6OG_-SyLh-lFymQlmWQX9UEIVMN5hbSbYNrrQZ-CY5g2_3Jy_NtqPwQVCcoQFT9tHgx_awkF6w-0CwE6P40kEAkiis2mukycWLVlvA7LPJUdhLgEmhtZkcAb-NS4N1sb3c29JDT7x3nhY5Im_IJxAFgWoCVEVCASjUvKgfuhh7B5cCPAASa3XrJhmMHtwb-Ps1sHHUCUC74Bo8XJJs7n0yu9ANK2wEKqX4k_NMo58b0ZxuKh-gq55CE5GtuQ5MHA";
+            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwNjM0NDIzLCJuYmYiOjE1OTA2MzQ0MjMsImV4cCI6MTU5MDYzODMyMywiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBakw0NkFUZUZEVm5zTXIrYlZMNnJpU0VHWWV2aEpmYU5aM3hWOXBoVytTVi9ocmsvMUEzV1dqcFc1S09vczBlclV2aUkxSktnaFBFbVpQVkExM3VNYU5DY1A2UG5QMEVhVllNUUI5Y3RMT1k9IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6ImdhMnFGUURvZjBDWmM0OS14WDBiQUEiLCJ2ZXIiOiIxLjAifQ.x4aacUCEH41l0xgI2byRNulIwfkOO9RlP3B5gE-1fqKbPLgdJwmZLyty4mEpDIJEikjlNOcGlREtJsdJVhEEMvcltrAMo4K3kLdQO_TSSZ46DBZWu-DSmiARJxEkveBG4HiVEgIbsVy2sOwEvRfNM7htLBObiuBFnGAq1G-TVHHO4S_nZCxsA1PyS-2OsnnBVM1YZtA0RkY4C-LC2DRrhAyWWBkmJaO486olRNzACKjMwOqVSbubQ6QYiQD8BAd664OVlOHTdhFiVPCAhTXS3i5MSNvTBdxwliBkQJTnB-jnl2IieK1-0sh-nYBzTHHJ-4iYhMBlkUIHrjyq8M9_1A";
             TokenCredentials token = new TokenCredentials(accessToken);
             string conStr = @"Server=tcp:bwsongsql.database.windows.net,1433; Database=bwsongdb;";
             string SubscriptionId = "faab228d-df7a-4086-991e-e81c4659d41a";
@@ -44,8 +44,9 @@ namespace ConsoleApp2
             string rgName = "bwsonggroup";
             string sqlName = "bwsongsql";
 
-            ConnectSQLApp(token, conStr, SubscriptionId, aadGuid, appName, rgName, sqlName);
+            //ConnectSQLApp(token, conStr, SubscriptionId, aadGuid, appName, rgName, sqlName);
             //Console.WriteLine(ValidationSQLApp(token, conStr, SubscriptionId, aadGuid, appName, rgName, sqlName));
+            ConnectMySQLSC(token, conStr, SubscriptionId, aadGuid, "bwsongsc", "bwsongscapp", "bwsonggroup", "bwsongmysql", "mysql", "bowsong", "Dong@258");
         }
 
         // Connect SQL and webapp
@@ -145,19 +146,25 @@ namespace ConsoleApp2
         }
 
         // Connect MySQL and Spring Cloud
-        static void ConnectMySQLSC(TokenCredentials token, string conStr, string SubscriptionId, string aadGuid, string scName, string scAppName, string rgName, string mySqlName)
+        static void ConnectMySQLSC(TokenCredentials token, string conStr, string SubscriptionId, string aadGuid, string scName, string scAppName, string rgName, string mySqlName, string mySqlDbName, string username, string password)
         {
             AppPlatformManagementClient scClient = new AppPlatformManagementClient(token);
             scClient.SubscriptionId = SubscriptionId;
-            scClient.Bindings.CreateOrUpdate(rgName, scName, scAppName, "Cupertino_"+mySqlName+"_Binding");
             BindingResource bindingResource = new BindingResource
             {
-                //Properties = new BindingResourceProperties
-                //{
-                //    ResourceName = mySqlName,
-                //    ResourceType = "Microsoft.MySQL"
-                //}
-            }
+                Properties = new BindingResourceProperties
+                {
+                    ResourceId = "/subscriptions/" + SubscriptionId + "resourceGroups/" + rgName + "/providers/Microsoft.DBforMySQL/servers/" + mySqlName,
+                    Key = "abcd",
+                    BindingParameters = new Dictionary<string, object>
+                    {
+                        {"Database name", mySqlDbName},
+                        {"username", username},
+                        {"Password", password }
+                    }
+                }
+            };
+            scClient.Bindings.CreateOrUpdate(rgName, scName, scAppName, "cupertino", bindingResource);
         }
     }
 }
