@@ -25,17 +25,20 @@ using ManagedServiceIdentityType = Microsoft.Azure.Management.WebSites.Models.Ma
 using Microsoft.Azure.Management.Sql;
 using Microsoft.Azure.Management.Sql.Models;
 using Microsoft.Azure.Management.AppPlatform;
-using NetTools;
+using RestSharp;
 using Microsoft.Azure.Management.AppPlatform.Models;
+using NetTools;
+using Microsoft.Azure.Management.Network.Fluent.Models;
+using MySql.Data.MySqlClient.Memcached;
 
 namespace ConsoleApp2
 {
     class Program
     {
         static string serverIp = "167.220.255.0";
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwNjM0NDIzLCJuYmYiOjE1OTA2MzQ0MjMsImV4cCI6MTU5MDYzODMyMywiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBakw0NkFUZUZEVm5zTXIrYlZMNnJpU0VHWWV2aEpmYU5aM3hWOXBoVytTVi9ocmsvMUEzV1dqcFc1S09vczBlclV2aUkxSktnaFBFbVpQVkExM3VNYU5DY1A2UG5QMEVhVllNUUI5Y3RMT1k9IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6ImdhMnFGUURvZjBDWmM0OS14WDBiQUEiLCJ2ZXIiOiIxLjAifQ.x4aacUCEH41l0xgI2byRNulIwfkOO9RlP3B5gE-1fqKbPLgdJwmZLyty4mEpDIJEikjlNOcGlREtJsdJVhEEMvcltrAMo4K3kLdQO_TSSZ46DBZWu-DSmiARJxEkveBG4HiVEgIbsVy2sOwEvRfNM7htLBObiuBFnGAq1G-TVHHO4S_nZCxsA1PyS-2OsnnBVM1YZtA0RkY4C-LC2DRrhAyWWBkmJaO486olRNzACKjMwOqVSbubQ6QYiQD8BAd664OVlOHTdhFiVPCAhTXS3i5MSNvTBdxwliBkQJTnB-jnl2IieK1-0sh-nYBzTHHJ-4iYhMBlkUIHrjyq8M9_1A";
+            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwNjUyMTA5LCJuYmYiOjE1OTA2NTIxMDksImV4cCI6MTU5MDY1NjAwOSwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBNFpFYmxYeFBiWWRwSW1CczB5M0RVeEtrVWdPbjcrRExORGhQTXpHTEVtV0RqTzgyNGpXTnkyelgvUWMzRFBIczAxNld2Y2ozOVkza0prK1UwcTVRU0pYZFl6NUYvSGVpNCs5Ym1IcWdkNkU9IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6IlVzVjVLQWE4MkVlNGV5YWNmRDhWQUEiLCJ2ZXIiOiIxLjAifQ.mO1hH3p6gHP4mi-pqH7CIkyKq-eUQnUc2r4SavPY22OFmW_w9dcFmvOR5z8gseOpsFz6Nd0bplWVVfRGjPhEkwKBGmnvTcgB5cv5QVi7vUUQXeDYBywB50_8qmNta5eHu9Wrc3j4_r-qNYNmG5BIF0bAMdtRE-GIp-lNRObuwDebdMEc5AddHzfaeKoF1wcqCaXBEuI93IPjur_fBJQkY2olO44wNWs9mza3KOv7vlcxark_11nVkV66Z955nZQ0Wuo6G-b09XirkqJEYDbhMPQD2PsTF1K9UfQtclGOEEpsIhZl8r3dnBz_h8dDZFVsv99DMZRgXz_AqBio_URpmw";
             TokenCredentials token = new TokenCredentials(accessToken);
             string conStr = @"Server=tcp:bwsongsql.database.windows.net,1433; Database=bwsongdb;";
             string SubscriptionId = "faab228d-df7a-4086-991e-e81c4659d41a";
@@ -46,7 +49,8 @@ namespace ConsoleApp2
 
             //ConnectSQLApp(token, conStr, SubscriptionId, aadGuid, appName, rgName, sqlName);
             //Console.WriteLine(ValidationSQLApp(token, conStr, SubscriptionId, aadGuid, appName, rgName, sqlName));
-            ConnectMySQLSC(token, conStr, SubscriptionId, aadGuid, "bwsongsc", "bwsongscapp", "bwsonggroup", "bwsongmysql", "mysql", "bowsong", "Dong@258");
+            //ConnectMySQLSC(token, conStr, SubscriptionId, aadGuid, "bwsongsc", "bwsongscapp", "bwsonggroup", "bwsongmysql", "sys", "bowsong", "Dong@258", accessToken);
+            Console.WriteLine(ValidationMySQLSC(token, conStr, SubscriptionId, aadGuid, "bwsongsc", "bwsongscapp", "bwsonggroup", "bwsongmysql", "sys", "bowsong", "Dong@258", accessToken));
         }
 
         // Connect SQL and webapp
@@ -146,25 +150,76 @@ namespace ConsoleApp2
         }
 
         // Connect MySQL and Spring Cloud
-        static void ConnectMySQLSC(TokenCredentials token, string conStr, string SubscriptionId, string aadGuid, string scName, string scAppName, string rgName, string mySqlName, string mySqlDbName, string username, string password)
+        static void ConnectMySQLSC(TokenCredentials token, string conStr, string SubscriptionId, string aadGuid, string scName, string scAppName, string rgName, string mySqlName, string mySqlDbName, string username, string password, string accessToken)
+        {
+            //AppPlatformManagementClient scClient = new AppPlatformManagementClient(token);
+            //scClient.SubscriptionId = SubscriptionId;
+            //BindingResource bindingResource = new BindingResource
+            //{
+            //    Properties = new BindingResourceProperties
+            //    {
+            //        ResourceId = "/subscriptions/" + SubscriptionId + "/resourceGroups/" + rgName + "/providers/Microsoft.DBforMySQL/servers/" + mySqlName,
+            //        Key = "abcd",
+            //        BindingParameters = new Dictionary<string, object>
+            //        {
+            //            {"Database name", mySqlDbName},
+            //            {"username", username},
+            //            {"Password", password }
+            //        }
+            //    }
+            //};
+            //scClient.Bindings.CreateOrUpdate(rgName, scName, scAppName, "cupertino", bindingResource);
+            RestClient rc = new RestClient("https://management.azure.com");
+            RestRequest request = new RestRequest("subscriptions/faab228d-df7a-4086-991e-e81c4659d41a/resourceGroups/bwsonggroup/providers/Microsoft.DBforMySQL/servers/bwsongmysql/firewallRules/test?api-version=2017-12-01", Method.PUT);
+            request.AddHeader("Content-type", "application/json");
+            request.AddParameter("application/json", "{\"properties\": {\"startIpAddress\": \"0.0.0.0\",\"endIpAddress\": \"0.0.0.0\"}}", RestSharp.ParameterType.RequestBody);
+            request.AddHeader("Authorization", "Bearer " + accessToken);
+            string returnedStr = rc.Execute(request).Content;
+            Console.WriteLine(returnedStr);
+        }
+
+        // Validate connection between MySQL and Spring Cloud
+        static bool ValidationMySQLSC(TokenCredentials token, string conStr, string SubscriptionId, string aadGuid, string scName, string scAppName, string rgName, string mySqlName, string mySqlDbName, string username, string password, string accessToken)
         {
             AppPlatformManagementClient scClient = new AppPlatformManagementClient(token);
             scClient.SubscriptionId = SubscriptionId;
-            BindingResource bindingResource = new BindingResource
+            IPage<BindingResource> bindings = scClient.Bindings.List(rgName, scName, scAppName);
+            string resourceId = "/subscriptions/" + SubscriptionId + "/resourceGroups/" + rgName + "/providers/Microsoft.DBforMySQL/servers/" + mySqlName;
+            IDictionary<string, object> bindingParameters = new Dictionary<string, object>
             {
-                Properties = new BindingResourceProperties
-                {
-                    ResourceId = "/subscriptions/" + SubscriptionId + "resourceGroups/" + rgName + "/providers/Microsoft.DBforMySQL/servers/" + mySqlName,
-                    Key = "abcd",
-                    BindingParameters = new Dictionary<string, object>
-                    {
-                        {"Database name", mySqlDbName},
-                        {"username", username},
-                        {"Password", password }
-                    }
-                }
+                {"Database name", mySqlDbName},
+                {"username", username},
+                {"Password", password }
             };
-            scClient.Bindings.CreateOrUpdate(rgName, scName, scAppName, "cupertino", bindingResource);
+            bool isConnected = false;
+            foreach (BindingResource binding in bindings)
+            {
+                if (binding.Properties.ResourceId.Equals(resourceId))
+                {
+                    foreach (var item in binding.Properties.BindingParameters)
+                    {
+                        if (!bindingParameters[item.Key].Equals(item.Value)) return false;
+                    }
+                    isConnected = true;
+                }
+            }
+            if (!isConnected) return false;
+            RestClient rc = new RestClient("https://management.azure.com");
+            RestRequest request = new RestRequest("subscriptions/faab228d-df7a-4086-991e-e81c4659d41a/resourceGroups/bwsonggroup/providers/Microsoft.DBforMySQL/servers/bwsongmysql/firewallRules?api-version=2017-12-01", Method.GET);
+            request.AddHeader("Authorization", "Bearer " + accessToken);
+            string returnedStr = rc.Execute(request).Content;
+            Console.WriteLine(returnedStr);
+            int i = 0;
+            while (i < returnedStr.Length)
+            {
+                int tmp = returnedStr.IndexOf("startIpAddress", i);
+                if (tmp == 0 || tmp == -1) return false;
+                string startIp = returnedStr.Substring(tmp + 17, 7);
+                string endIp = returnedStr.Substring(tmp + 42, 7);
+                if (startIp.Equals("0.0.0.0") && endIp.Equals("0.0.0.0")) return true;
+                else i = tmp + 1;
+            }
+            return false;
         }
     }
 }
