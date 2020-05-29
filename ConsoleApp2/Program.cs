@@ -16,6 +16,8 @@ using Microsoft.Azure.Management.AppPlatform;
 using RestSharp;
 using Microsoft.Azure.Management.AppPlatform.Models;
 using NetTools;
+using Renci.SshNet;
+using System.Linq.Expressions;
 
 namespace ConsoleApp2
 {
@@ -57,6 +59,17 @@ namespace ConsoleApp2
                 }
             };
             _client.WebApps.UpdateConnectionStrings(_rgName, _appName, _connectionString);
+        }
+
+        // Question: whether to add check on connection string type
+        public bool CheckConnectionString(string connectionString)
+        {
+            ConnectionStringDictionary connectionStrings = _client.WebApps.ListConnectionStrings(_rgName, _appName);
+            foreach (var item in connectionStrings.Properties)
+            {
+                if (item.Value.Value.Equals(connectionString)) return true;
+            }
+            return false;
         }
 
         private string _accessToken;
@@ -107,6 +120,11 @@ namespace ConsoleApp2
 
         public void SetAADAdmin()
         {
+            if (_type.Equals("SECRET"))
+            {
+                Console.WriteLine("Cannot be called when using secret.");
+                return;
+            }
             _client.ServerAzureADAdministrators.CreateOrUpdate(_rgName, _serverName, new ServerAzureADAdministrator("Admin", new Guid(_aadGuid)));
         }
 
@@ -217,7 +235,7 @@ namespace ConsoleApp2
 
     public class AzureMySQL
     {
-        public AzureMySQL(string accessToken, string subscriptionId, string rgName, string serverName, string dbName, string userName, string password)
+        public AzureMySQL(string accessToken, string subscriptionId, string rgName, string serverName, string dbName, string userName, string password, string language)
         {
             _accessToken = accessToken;
             _subscriptionId = subscriptionId;
@@ -226,9 +244,43 @@ namespace ConsoleApp2
             _dbName = dbName;
             _userName = userName;
             _password = password;
+            _language = language;
             _tokenCredentials = new TokenCredentials(accessToken);
             _client = new RestClient("https://management.azure.com");
+            _type = "SECRET";
+            SetConnectionString();
         }
+
+        //public AzureMySQL(string accessToken, string subscriptionId, string aadGuid, string aadUserName, string tenantId, string rgName, string serverName, string dbName, string language)
+        //{
+        //    _accessToken = accessToken;
+        //    _subscriptionId = subscriptionId;
+        //    _rgName = rgName;
+        //    _serverName = serverName;
+        //    _dbName = dbName;
+        //    _aadGuid = aadGuid;
+        //    _aadUserName = aadUserName;
+        //    _tenantId = tenantId;
+        //    _language = language;
+        //    _tokenCredentials = new TokenCredentials(accessToken);
+        //    _client = new RestClient("https://management.azure.com");
+        //    _type = "MSI";
+        //}
+
+        //public void SetAADAdmin()
+        //{
+        //    if (_type.Equals("SECRET"))
+        //    {
+        //        Console.WriteLine("Cannot be called when using secret.");
+        //        return;
+        //    }
+        //    RestRequest request = new RestRequest("subscriptions/" + _subscriptionId + "/resourceGroups/" + _rgName + "/providers/Microsoft.DBforMySQL/servers/" + _serverName + "/Administrators/activeDirectory?api-version=2017-12-01", Method.PUT);
+        //    request.AddHeader("Content-type", "application/json");
+        //    request.AddHeader("Authorization", "Bearer " + _accessToken);
+        //    request.AddParameter("application/json", "{\"properties\":{\"administratorType\":\"ActiveDirectory\",\"login\":\"" + _aadUserName + "\",\"sid\":\"" + _aadGuid + "\",\"tenantId\":\"" + _tenantId + "\"}}", RestSharp.ParameterType.RequestBody);
+        //    string returnedStr = _client.Execute(request).Content;
+        //    Console.WriteLine(returnedStr);
+        //}
 
         public void SetFirewallRule()
         {
@@ -284,62 +336,99 @@ namespace ConsoleApp2
             return serviceProperties;
         }
 
+        public string GetConnectionString()
+        {
+            return _connectionString;
+        }
+
+        private void SetConnectionString()
+        {
+            switch (_language)
+            {
+                case "ADO.NET":
+                    if (_type.Equals("SECRET")) _connectionString = "Server=" + _serverName + ".mysql.database.azure.com;Port=3306;Database=" + _dbName + ";Uid=" + _userName + ";Pwd=" + _password + ";SslMode=Preferred;";
+                    else if (_type.Equals("MSI")) _connectionString = "Server=" + _serverName + ".mysql.database.azure.com;Port=3306;Database=" + _dbName + ";SslMode=Preferred;";
+                    break;
+            }
+        }
+
         private string _accessToken;
         private TokenCredentials _tokenCredentials;
         private string _subscriptionId;
+        private string _aadGuid;
+        private string _aadUserName;
+        private string _tenantId;
         private string _rgName;
         private string _serverName;
         private string _dbName;
         string _userName;
         string _password;
+        string _language;
+        string _type;
         RestClient _client;
+        string _connectionString;
     }
 
     class Program
     {
         static void Main(string[] args)
         {
-            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwNzE4NjA2LCJuYmYiOjE1OTA3MTg2MDYsImV4cCI6MTU5MDcyMjUwNiwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBNnptWnhnYUFvdGw4NGJFOU00bzJSUlQzMVd2bjM0UytBVVR5OE5nTW1CTnMxejlKQlJtazFSWmpsZzRwWW9WYTBtck5nT1d3UTZ6Wm5BN2ZhTm9LcEVUalRaNzVRNXRoT2lLTGk1TEtkRGM9IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6IlpHUFppN3pKSmtHbWtfM2p2czBMQUEiLCJ2ZXIiOiIxLjAifQ.ZkImgY2_bk6BmLGwoS8xDM8mE_8NlzHR4JBdLdpWb2o_5eB6VHdlKd5uQvVItOCKh96qbfryhdSYEoJR5O5pOfM8vPSfGb0lF-o2HN5ZjSZgJ8Ic385Q781l2_q7WuJe5APg9nPm-2TAujVzw_WJRlSdDmiwRxX_t5PoXQo32EzVAbBl4JhCWvMXIxL8Sms8tQlORfZ3zdY3yElOTfKuCV_gApAlVhJMHeSDEzLRkIh1yTG9hbUlzPva5gRXPnqhgJdozZ-oYswKE6UM2Lp2uz7jgFluAOVPR1-CVcFnGvK0_8fdwvPxeabQEhgdHJcyPiKt5BuTY8dT43AASxVUfA";
+            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwNzMxMTczLCJuYmYiOjE1OTA3MzExNzMsImV4cCI6MTU5MDczNTA3MywiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBdWhOLzBJaUhpL05PQ3lnTTYvaVh0ZnNZbWs1eHR1WVZlVkpKellUbjdnQisyMWxhWjYySUpUV1B0R3BsYmFLeFUvVE8yWVNsa0dFdCtkcU84V2laNi9tOUNTZzl6NHdqUHk4R3ZEV29EeE09IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6Im5wOTZvQWRXNFVPRTFYT0g5RnNPQUEiLCJ2ZXIiOiIxLjAifQ.EUMskufgFZYyzycZbnVvalj52hiHbck3ZY7hxuXIt9KhE0qPfIjOKEJMkZV6KYirb6wCTaiUOBJM8uCyO9iksS1ZjYkuBKL04ZxZN6ANqoQgvrAgYmYlWOg913uthOC8T1QbBa-floP_aFkl20Vu28stc2T69afrqmokNn_ZrOEuSfEjO30OfYNwq1-I3OApZFlYNhYm6Vej_tCJhhePRDnO48xjJKJFOlFD5Y5F3ptzqXGlAoRcxNArDc7Y6cFOBGOruGaah3MFFhvDf6X0F2f1G7R4q1HAZOSrWwrDFf11ny4uTrpnjnejlBn63raxp4r_YWf1OuqpEzOox1cBIg";
             TokenCredentials token = new TokenCredentials(accessToken);
             string subscriptionId = "faab228d-df7a-4086-991e-e81c4659d41a";
             string aadGuid = "3b3aabb6-ed1f-402e-a193-20bb269b8f36";
             string rgName = "bwsonggroup";
 
             //-----------------------------------------------------------
-            // Webapp + SQL: Connection
+            // Webapp + SQL: Connection via AAD
             //-----------------------------------------------------------
-            AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
-            AzureSQL sql = new AzureSQL(accessToken, subscriptionId, aadGuid, rgName, "bwsongsql", "bwsongdb", "ADO.NET");
-            //Console.WriteLine("webapp ip: " + app.GetOutboundIp());
-            app.SetManagedIdentity();
-            sql.SetAADAdmin();
-            sql.SetFirewallRule(app.GetOutboundIp(), app.GetOutboundIp());
-            //Console.WriteLine("Connection String: " + sql.GetConnectionString());
-            app.SetConnectionString(sql.GetConnectionString());
+            //AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
+            //AzureSQL sql = new AzureSQL(accessToken, subscriptionId, aadGuid, rgName, "bwsongsql", "bwsongdb", "ADO.NET");
+            ////Console.WriteLine("webapp ip: " + app.GetOutboundIp());
+            //app.SetManagedIdentity();
+            //sql.SetAADAdmin();
+            //sql.SetFirewallRule(app.GetOutboundIp(), app.GetOutboundIp());
+            ////Console.WriteLine("Connection String: " + sql.GetConnectionString());
+            //app.SetConnectionString(sql.GetConnectionString());
 
             //----------------------------------------------------------
-            // Webapp + SQL: Validation
+            // Webapp + SQL: Validation via AAD
             //----------------------------------------------------------
             //AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
             //AzureSQL sql = new AzureSQL(accessToken, subscriptionId, aadGuid, rgName, "bwsongsql", "bwsongdb", "ADO.NET");
             //foreach (string item in app.GetOutboundIps())
             //    Console.WriteLine(item);
-            Console.WriteLine(sql.CheckIpIsInFirewallRule(app.GetOutboundIps()));
+            //Console.WriteLine(sql.CheckIpIsInFirewallRule(app.GetOutboundIps()) && app.CheckConnectionString(sql.GetConnectionString()));
 
             //----------------------------------------------------------
-            // Spring + MySQL: Connection
+            // Spring + MySQL: Connection via Service Binding
             //----------------------------------------------------------
-            SpringCloud sc = new SpringCloud(accessToken, subscriptionId, rgName, "bwsongsc", "bwsongscapp");
-            AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258");
-            sc.SetSericeBinding(mySql.GetSericeProperties());
-            mySql.SetFirewallRule();
+            //SpringCloud sc = new SpringCloud(accessToken, subscriptionId, rgName, "bwsongsc", "bwsongscapp");
+            //AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258", "ADO.NET");
+            //sc.SetSericeBinding(mySql.GetSericeProperties());
+            //mySql.SetFirewallRule();
 
             //----------------------------------------------------------
-            // Spring + MySQL: Validation
+            // Spring + MySQL: Validation via Service Binding
             //----------------------------------------------------------
             //SpringCloud sc = new SpringCloud(accessToken, subscriptionId, rgName, "bwsongsc", "bwsongscapp");
             //AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258");
-            Console.WriteLine(sc.CheckSericeBinding(mySql.GetSericeProperties()) && mySql.CheckFirewallRule());
+            //Console.WriteLine(sc.CheckSericeBinding(mySql.GetSericeProperties()) && mySql.CheckFirewallRule());
+
+            //----------------------------------------------------------
+            // Webapp + MySQL: Connection via Secret
+            //----------------------------------------------------------
+            //AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
+            //AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258", "ADO.NET");
+            //app.SetConnectionString(mySql.GetConnectionString());
+            //mySql.SetFirewallRule();
+
+            //----------------------------------------------------------
+            // Webapp + MySQL: Validation via Secret
+            //----------------------------------------------------------
+            AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
+            AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258", "ADO.NET");
+            Console.WriteLine(mySql.CheckFirewallRule() && app.CheckConnectionString(mySql.GetConnectionString()));
         }
     }
 }
