@@ -1,24 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Net.Http;
-using System.IO;
-using System.Configuration;
 using Microsoft.Rest.Azure;
 using Microsoft.Rest;
 using Microsoft.Azure.Management.ResourceManager;
-using Microsoft.Azure.Management.ResourceManager.Models;
-using System.Data.SqlClient;
 using Microsoft.Azure.Management.WebSites;
 using Microsoft.Azure.Management.WebSites.Models;
-using Microsoft.Azure;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using Microsoft.Azure.Common;
 using Microsoft.Azure.Management.Dns;
-using Microsoft.Azure.Management.Dns.Models;
-using System.Runtime.Remoting.Contexts;
 using System.Net;
 using ManagedServiceIdentity = Microsoft.Azure.Management.WebSites.Models.ManagedServiceIdentity;
 using ManagedServiceIdentityType = Microsoft.Azure.Management.WebSites.Models.ManagedServiceIdentityType;
@@ -28,9 +16,6 @@ using Microsoft.Azure.Management.AppPlatform;
 using RestSharp;
 using Microsoft.Azure.Management.AppPlatform.Models;
 using NetTools;
-using Microsoft.Azure.Management.Network.Fluent.Models;
-using MySql.Data.MySqlClient.Memcached;
-using System.Windows.Forms;
 
 namespace ConsoleApp2
 {
@@ -262,7 +247,7 @@ namespace ConsoleApp2
             request.AddParameter("application/json", "{\"properties\": {\"startIpAddress\": \"" + startIp + "\",\"endIpAddress\": \"" + endIp + "\"}}", RestSharp.ParameterType.RequestBody);
             request.AddHeader("Authorization", "Bearer " + _accessToken);
             string returnedStr = _client.Execute(request).Content;
-            Console.WriteLine(returnedStr);
+            //Console.WriteLine(returnedStr);
         }
         
         public bool CheckFirewallRule()
@@ -312,8 +297,7 @@ namespace ConsoleApp2
 
     class Program
     {
-        static string serverIp = "167.220.255.0";
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwNzE4NjA2LCJuYmYiOjE1OTA3MTg2MDYsImV4cCI6MTU5MDcyMjUwNiwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBNnptWnhnYUFvdGw4NGJFOU00bzJSUlQzMVd2bjM0UytBVVR5OE5nTW1CTnMxejlKQlJtazFSWmpsZzRwWW9WYTBtck5nT1d3UTZ6Wm5BN2ZhTm9LcEVUalRaNzVRNXRoT2lLTGk1TEtkRGM9IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6IlpHUFppN3pKSmtHbWtfM2p2czBMQUEiLCJ2ZXIiOiIxLjAifQ.ZkImgY2_bk6BmLGwoS8xDM8mE_8NlzHR4JBdLdpWb2o_5eB6VHdlKd5uQvVItOCKh96qbfryhdSYEoJR5O5pOfM8vPSfGb0lF-o2HN5ZjSZgJ8Ic385Q781l2_q7WuJe5APg9nPm-2TAujVzw_WJRlSdDmiwRxX_t5PoXQo32EzVAbBl4JhCWvMXIxL8Sms8tQlORfZ3zdY3yElOTfKuCV_gApAlVhJMHeSDEzLRkIh1yTG9hbUlzPva5gRXPnqhgJdozZ-oYswKE6UM2Lp2uz7jgFluAOVPR1-CVcFnGvK0_8fdwvPxeabQEhgdHJcyPiKt5BuTY8dT43AASxVUfA";
             TokenCredentials token = new TokenCredentials(accessToken);
@@ -324,14 +308,14 @@ namespace ConsoleApp2
             //-----------------------------------------------------------
             // Webapp + SQL: Connection
             //-----------------------------------------------------------
-            //AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
-            //AzureSQL sql = new AzureSQL(accessToken, subscriptionId, aadGuid, rgName, "bwsongsql", "bwsongdb", "ADO.NET");
+            AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
+            AzureSQL sql = new AzureSQL(accessToken, subscriptionId, aadGuid, rgName, "bwsongsql", "bwsongdb", "ADO.NET");
             //Console.WriteLine("webapp ip: " + app.GetOutboundIp());
-            //app.SetManagedIdentity();
-            //sql.SetAADAdmin();
-            //sql.SetFirewallRule(app.GetOutboundIp(), app.GetOutboundIp());
+            app.SetManagedIdentity();
+            sql.SetAADAdmin();
+            sql.SetFirewallRule(app.GetOutboundIp(), app.GetOutboundIp());
             //Console.WriteLine("Connection String: " + sql.GetConnectionString());
-            //app.SetConnectionString(sql.GetConnectionString());
+            app.SetConnectionString(sql.GetConnectionString());
 
             //----------------------------------------------------------
             // Webapp + SQL: Validation
@@ -340,21 +324,21 @@ namespace ConsoleApp2
             //AzureSQL sql = new AzureSQL(accessToken, subscriptionId, aadGuid, rgName, "bwsongsql", "bwsongdb", "ADO.NET");
             //foreach (string item in app.GetOutboundIps())
             //    Console.WriteLine(item);
-            //Console.WriteLine(sql.CheckIpIsInFirewallRule(app.GetOutboundIps()));
+            Console.WriteLine(sql.CheckIpIsInFirewallRule(app.GetOutboundIps()));
 
             //----------------------------------------------------------
             // Spring + MySQL: Connection
             //----------------------------------------------------------
-            //SpringCloud sc = new SpringCloud(accessToken, subscriptionId, rgName, "bwsongsc", "bwsongscapp");
-            //AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258");
-            //sc.SetSericeBinding(mySql.GetSericeProperties());
-            //mySql.SetFirewallRule();
+            SpringCloud sc = new SpringCloud(accessToken, subscriptionId, rgName, "bwsongsc", "bwsongscapp");
+            AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258");
+            sc.SetSericeBinding(mySql.GetSericeProperties());
+            mySql.SetFirewallRule();
 
             //----------------------------------------------------------
             // Spring + MySQL: Validation
             //----------------------------------------------------------
-            SpringCloud sc = new SpringCloud(accessToken, subscriptionId, rgName, "bwsongsc", "bwsongscapp");
-            AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258");
+            //SpringCloud sc = new SpringCloud(accessToken, subscriptionId, rgName, "bwsongsc", "bwsongscapp");
+            //AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258");
             Console.WriteLine(sc.CheckSericeBinding(mySql.GetSericeProperties()) && mySql.CheckFirewallRule());
         }
     }
