@@ -16,8 +16,9 @@ using Microsoft.Azure.Management.AppPlatform;
 using RestSharp;
 using Microsoft.Azure.Management.AppPlatform.Models;
 using NetTools;
-using Renci.SshNet;
-using System.Linq.Expressions;
+using Microsoft.Azure.Management.Authorization;
+using Microsoft.Azure.Management.Network.Fluent.Models;
+using Microsoft.Azure.Management.Authorization.Models;
 
 namespace ConsoleApp2
 {
@@ -37,6 +38,11 @@ namespace ConsoleApp2
         public void SetManagedIdentity()
         {
             _client.WebApps.Update(_rgName, _appName, new SitePatchResource { Identity = new ManagedServiceIdentity(ManagedServiceIdentityType.SystemAssigned)});
+        }
+
+        public string GetManagedIdentityPrincipalId()
+        {
+            return _client.WebApps.Get(_rgName, _appName).Identity.PrincipalId;
         }
 
         public string GetOutboundIp()
@@ -251,37 +257,6 @@ namespace ConsoleApp2
             SetConnectionString();
         }
 
-        //public AzureMySQL(string accessToken, string subscriptionId, string aadGuid, string aadUserName, string tenantId, string rgName, string serverName, string dbName, string language)
-        //{
-        //    _accessToken = accessToken;
-        //    _subscriptionId = subscriptionId;
-        //    _rgName = rgName;
-        //    _serverName = serverName;
-        //    _dbName = dbName;
-        //    _aadGuid = aadGuid;
-        //    _aadUserName = aadUserName;
-        //    _tenantId = tenantId;
-        //    _language = language;
-        //    _tokenCredentials = new TokenCredentials(accessToken);
-        //    _client = new RestClient("https://management.azure.com");
-        //    _type = "MSI";
-        //}
-
-        //public void SetAADAdmin()
-        //{
-        //    if (_type.Equals("SECRET"))
-        //    {
-        //        Console.WriteLine("Cannot be called when using secret.");
-        //        return;
-        //    }
-        //    RestRequest request = new RestRequest("subscriptions/" + _subscriptionId + "/resourceGroups/" + _rgName + "/providers/Microsoft.DBforMySQL/servers/" + _serverName + "/Administrators/activeDirectory?api-version=2017-12-01", Method.PUT);
-        //    request.AddHeader("Content-type", "application/json");
-        //    request.AddHeader("Authorization", "Bearer " + _accessToken);
-        //    request.AddParameter("application/json", "{\"properties\":{\"administratorType\":\"ActiveDirectory\",\"login\":\"" + _aadUserName + "\",\"sid\":\"" + _aadGuid + "\",\"tenantId\":\"" + _tenantId + "\"}}", RestSharp.ParameterType.RequestBody);
-        //    string returnedStr = _client.Execute(request).Content;
-        //    Console.WriteLine(returnedStr);
-        //}
-
         public void SetFirewallRule()
         {
             RestRequest request = new RestRequest("subscriptions/" + _subscriptionId + "/resourceGroups/" + _rgName + "/providers/Microsoft.DBforMySQL/servers/" + _serverName + "/firewallRules/" + "Cupertino" + "?api-version=2017-12-01", Method.PUT);
@@ -355,9 +330,6 @@ namespace ConsoleApp2
         private string _accessToken;
         private TokenCredentials _tokenCredentials;
         private string _subscriptionId;
-        private string _aadGuid;
-        private string _aadUserName;
-        private string _tenantId;
         private string _rgName;
         private string _serverName;
         private string _dbName;
@@ -369,11 +341,49 @@ namespace ConsoleApp2
         string _connectionString;
     }
 
+    public class KeyVault
+    {
+        public KeyVault(string accessToken, string subscriptionId, string rgName, string keyVaultName)
+        {
+            _accessToken = accessToken;
+            _subscriptionId = subscriptionId;
+            _rgName = rgName;
+            _keyVaultName = keyVaultName;
+            _tokenCredentials = new TokenCredentials(accessToken);
+            _client = new AuthorizationManagementClient(_tokenCredentials);
+            _client.SubscriptionId = _subscriptionId;
+        }
+
+        public void AssignRoleToPricipalId(string principalId)
+        {
+            string roleId = "acdd72a7-3385-48ef-bd42-f606fba81ae7";
+            string scope = "subscriptions/" + _subscriptionId + "/resourceGroups/" + _rgName + "/providers/Microsoft.KeyVault/vaults/" + _keyVaultName;
+            _client.RoleAssignments.Create(scope, Guid.NewGuid().ToString(), new RoleAssignmentCreateParameters(scope + "/providers/Microsoft.Authorization/roleDefinitions/" + roleId, principalId));
+        }
+
+        public bool GetRoleAssignment(string principalId)
+        {
+            string scope = "subscriptions/" + _subscriptionId + "/resourceGroups/" + _rgName + "/providers/Microsoft.KeyVault/vaults/" + _keyVaultName;
+            foreach (var item in _client.RoleAssignments.ListForScope(scope))
+            {
+                if (item.PrincipalId.Equals(principalId)) return true;
+            }
+            return false;
+        }
+
+        private string _accessToken;
+        private TokenCredentials _tokenCredentials;
+        private string _subscriptionId;
+        private string _rgName;
+        private string _keyVaultName;
+        private AuthorizationManagementClient _client;
+    }
+
     class Program
     {
         static void Main(string[] args)
         {
-            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwNzMxMTczLCJuYmYiOjE1OTA3MzExNzMsImV4cCI6MTU5MDczNTA3MywiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBdWhOLzBJaUhpL05PQ3lnTTYvaVh0ZnNZbWs1eHR1WVZlVkpKellUbjdnQisyMWxhWjYySUpUV1B0R3BsYmFLeFUvVE8yWVNsa0dFdCtkcU84V2laNi9tOUNTZzl6NHdqUHk4R3ZEV29EeE09IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6Im5wOTZvQWRXNFVPRTFYT0g5RnNPQUEiLCJ2ZXIiOiIxLjAifQ.EUMskufgFZYyzycZbnVvalj52hiHbck3ZY7hxuXIt9KhE0qPfIjOKEJMkZV6KYirb6wCTaiUOBJM8uCyO9iksS1ZjYkuBKL04ZxZN6ANqoQgvrAgYmYlWOg913uthOC8T1QbBa-floP_aFkl20Vu28stc2T69afrqmokNn_ZrOEuSfEjO30OfYNwq1-I3OApZFlYNhYm6Vej_tCJhhePRDnO48xjJKJFOlFD5Y5F3ptzqXGlAoRcxNArDc7Y6cFOBGOruGaah3MFFhvDf6X0F2f1G7R4q1HAZOSrWwrDFf11ny4uTrpnjnejlBn63raxp4r_YWf1OuqpEzOox1cBIg";
+            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwOTAxMTg5LCJuYmYiOjE1OTA5MDExODksImV4cCI6MTU5MDkwNTA4OSwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBdVZLNjFPUWpVK002dCs4alN0NkR0TFVmdlJMMkdZVDBqTkI3aE4wL1Z3QkVaekNSenBtd21xUnM3MVBPWTR0cnNUVFhtZFlOWTNHNXI1MzZ1YmlUSmFIN04xN21rdGM0WUJIdERZUm5DT009IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6IkNvZDRNZXk3OVV1bHRBVDZHdzRZQUEiLCJ2ZXIiOiIxLjAifQ.HKGjkE5fNE2IbGz2QHMD97Q6LsROGPBB-qgYe7iQVBNsWYa9l7EhhDonTbZ2fRa2kb009gbdy3AG1gqkyqEK56MlvQRU-3c4M3ANRZ9Wp7vZj3T1m0zzLfYjlHKnKJ3C5HQKEgN7_Ur_AtOctXpCqUYP_o1WPDQMsPirVCo7Niuf-632KT0MOH7FYB8bylX8VkAfDP87CKFnMp0Fzv42_YwDA9s8wsJqJ-8fvUWWmH_ngWDyZTd4-SeKatCIWp8ILAKpkRR-ULlN7HBq7_d6_7_84hUaqV46k9GLlvyXBkei81Ov_G_5jdzBFQHsCavQE3yT28_tZH970LRiNcubEg";
             TokenCredentials token = new TokenCredentials(accessToken);
             string subscriptionId = "faab228d-df7a-4086-991e-e81c4659d41a";
             string aadGuid = "3b3aabb6-ed1f-402e-a193-20bb269b8f36";
@@ -426,9 +436,25 @@ namespace ConsoleApp2
             //----------------------------------------------------------
             // Webapp + MySQL: Validation via Secret
             //----------------------------------------------------------
+            //AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
+            //AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258", "ADO.NET");
+            //Console.WriteLine(mySql.CheckFirewallRule() && app.CheckConnectionString(mySql.GetConnectionString()));
+
+            //----------------------------------------------------------
+            // Webapp + KeyVault: Connection via MSI
+            //----------------------------------------------------------
+            //AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
+            //KeyVault key = new KeyVault(accessToken, subscriptionId, rgName, "bwsongkeyvault");
+            //app.SetManagedIdentity();
+            //key.AssignRoleToPricipalId(app.GetManagedIdentityPrincipalId());
+
+            //----------------------------------------------------------
+            // Webapp + KeyVault: Validation via MSI
+            //----------------------------------------------------------
+            //TODO: Check whether webapp's managed identity is enabled
             AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
-            AzureMySQL mySql = new AzureMySQL(accessToken, subscriptionId, rgName, "bwsongmysql", "sys", "bwsong", "Dong@258", "ADO.NET");
-            Console.WriteLine(mySql.CheckFirewallRule() && app.CheckConnectionString(mySql.GetConnectionString()));
+            KeyVault key = new KeyVault(accessToken, subscriptionId, rgName, "bwsongkeyvault");
+            Console.WriteLine(key.GetRoleAssignment(app.GetManagedIdentityPrincipalId()));
         }
     }
 }

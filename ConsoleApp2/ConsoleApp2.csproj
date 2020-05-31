@@ -74,6 +74,9 @@
     <Reference Include="Microsoft.Azure.Management.AppService.Fluent, Version=1.0.0.66, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Azure.Management.AppService.Fluent.1.33.0\lib\net452\Microsoft.Azure.Management.AppService.Fluent.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Azure.Management.Authorization, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Azure.Management.Authorization.2.11.0-preview\lib\net452\Microsoft.Azure.Management.Authorization.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Azure.Management.BatchAI.Fluent, Version=1.0.0.66, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Azure.Management.BatchAI.Fluent.1.33.0\lib\net452\Microsoft.Azure.Management.BatchAI.Fluent.dll</HintPath>
     </Reference>
@@ -106,6 +109,9 @@
     </Reference>
     <Reference Include="Microsoft.Azure.Management.Graph.RBAC.Fluent, Version=1.0.0.66, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Azure.Management.Graph.RBAC.Fluent.1.33.0\lib\net452\Microsoft.Azure.Management.Graph.RBAC.Fluent.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Azure.Management.KeyVault, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Azure.Management.KeyVault.3.0.0\lib\net461\Microsoft.Azure.Management.KeyVault.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Azure.Management.KeyVault.Fluent, Version=1.0.0.66, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Azure.Management.KeyVault.Fluent.1.33.0\lib\net452\Microsoft.Azure.Management.KeyVault.Fluent.dll</HintPath>
