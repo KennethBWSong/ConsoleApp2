@@ -17,8 +17,9 @@ using RestSharp;
 using Microsoft.Azure.Management.AppPlatform.Models;
 using NetTools;
 using Microsoft.Azure.Management.Authorization;
-using Microsoft.Azure.Management.Network.Fluent.Models;
 using Microsoft.Azure.Management.Authorization.Models;
+using Microsoft.Azure.Management.Storage;
+using Microsoft.Azure.Management.Network.Fluent.Models;
 
 namespace ConsoleApp2
 {
@@ -45,6 +46,12 @@ namespace ConsoleApp2
             return _client.WebApps.Get(_rgName, _appName).Identity.PrincipalId;
         }
 
+        public bool CheckManagedIdentity()
+        {
+            if (_client.WebApps.Get(_rgName, _appName).Identity.Type == ManagedServiceIdentityType.SystemAssigned) return true;
+            else return false;
+        }
+
         public string GetOutboundIp()
         {
             return _client.WebApps.Get(_rgName, _appName).OutboundIpAddresses.Split(',')[0];
@@ -65,6 +72,29 @@ namespace ConsoleApp2
                 }
             };
             _client.WebApps.UpdateConnectionStrings(_rgName, _appName, _connectionString);
+        }
+
+        public void SetAppSettings(string settingName, string setting)
+        {
+            List<Microsoft.Azure.Management.WebSites.Models.NameValuePair> appSettings = new List<Microsoft.Azure.Management.WebSites.Models.NameValuePair>(
+                new Microsoft.Azure.Management.WebSites.Models.NameValuePair[]
+                {
+                    new Microsoft.Azure.Management.WebSites.Models.NameValuePair() { Name = settingName, Value = setting }
+                }
+            );
+            _client.WebApps.Update(_rgName, _appName, new SitePatchResource { SiteConfig = new SiteConfig { AppSettings = appSettings } });
+        }
+
+        // Error: settings = NULL
+        public bool CheckAppSettings(string setting)
+        {
+            IList<Microsoft.Azure.Management.WebSites.Models.NameValuePair> settings = _client.WebApps.GetConfiguration(_rgName, _appName).AppSettings;
+            Console.WriteLine(settings.Count);
+            //foreach (var item in )
+            //{
+            //    if (item.Value.Equals(setting)) return true;
+            //}
+            return false;
         }
 
         // Question: whether to add check on connection string type
@@ -379,11 +409,97 @@ namespace ConsoleApp2
         private AuthorizationManagementClient _client;
     }
 
+    public class Storage
+    {
+        //TODO: Check the role definitions
+        public Storage(string accessToken, string subscriptionId, string rgName, string storageAccount, string accountKey)
+        {
+            _accessToken = accessToken;
+            _subscriptionId = subscriptionId;
+            _rgName = rgName;
+            _storageAccount = storageAccount;
+            _accountKey = accountKey;
+            _type = "SECRET";
+            _tokenCredentials = new TokenCredentials(accessToken);
+        }
+
+        public Storage(string accessToken, string subscriptionId, string rgName, string storageAccount, string containerName, int storageType)
+        {
+            _accessToken = accessToken;
+            _subscriptionId = subscriptionId;
+            _rgName = rgName;
+            _storageAccount = storageAccount;
+            _storageType = (storageTypes)storageType;
+            _containerName = containerName;
+            _type = "MSI";
+            _tokenCredentials = new TokenCredentials(accessToken);
+            _client = new AuthorizationManagementClient(_tokenCredentials);
+            _client.SubscriptionId = _subscriptionId;
+        }
+
+        public string GetEndpoint()
+        {
+            // According to https://docs.microsoft.com/en-us/azure/storage/common/storage-auth-aad-msi#net-code-example-create-a-block-blob
+            string endpoint = "https://" + _storageAccount + ".";
+            switch (_storageType)
+            {
+                case storageTypes.Blob:
+                    endpoint += "blob";
+                    break;
+                case storageTypes.Queue:
+                    endpoint += "queue";
+                    break;
+                case storageTypes.Table:
+                    endpoint += "table";
+                    break;
+            }
+            endpoint += ".core.windows.net/" + _containerName;
+            return endpoint;
+        }
+
+        public string GetConnectionString()
+        {
+            if (_type.Equals("SECRET"))
+                return "DefaultEndpointsProtocol=https;AccountName=" + _storageAccount + ";AccountKey=" + _accountKey + ";EndpointSuffix=core.windows.net";
+            else
+                return "Error";
+        }
+
+        public void SetManagedIdentity(string principalId)
+        {
+            string roleId = "c12c1c16-33a1-487b-954d-41c89c60f349";
+            string scope = "subscriptions/" + _subscriptionId + "/resourceGroups/" + _rgName + "/providers/Microsoft.Storage/storageAccounts/" + _storageAccount;
+            _client.RoleAssignments.Create(scope, Guid.NewGuid().ToString(), new RoleAssignmentCreateParameters(scope + "/providers/Microsoft.Authorization/roleDefinitions/" + roleId, principalId));
+        }
+
+        public bool GetRoleAssignment(string principalId)
+        {
+            string scope = "subscriptions/" + _subscriptionId + "/resourceGroups/" + _rgName + "/providers/Microsoft.Storage/storageAccounts/" + _storageAccount;
+            foreach (var item in _client.RoleAssignments.ListForScope(scope))
+            {
+                if (item.PrincipalId.Equals(principalId)) return true;
+            }
+            return false;
+        }
+
+        private string _accessToken;
+        private TokenCredentials _tokenCredentials;
+        private string _subscriptionId;
+        private string _rgName;
+        private string _storageAccount;
+        private string _accountKey;
+        private string _containerName;
+        enum storageTypes {Blob = 0, Table = 1, Queue = 2};
+        private storageTypes _storageType;
+        string _type;
+        private AuthorizationManagementClient _client;
+    }
+
     class Program
     {
         static void Main(string[] args)
         {
-            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwOTAxMTg5LCJuYmYiOjE1OTA5MDExODksImV4cCI6MTU5MDkwNTA4OSwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBdVZLNjFPUWpVK002dCs4alN0NkR0TFVmdlJMMkdZVDBqTkI3aE4wL1Z3QkVaekNSenBtd21xUnM3MVBPWTR0cnNUVFhtZFlOWTNHNXI1MzZ1YmlUSmFIN04xN21rdGM0WUJIdERZUm5DT009IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6IkNvZDRNZXk3OVV1bHRBVDZHdzRZQUEiLCJ2ZXIiOiIxLjAifQ.HKGjkE5fNE2IbGz2QHMD97Q6LsROGPBB-qgYe7iQVBNsWYa9l7EhhDonTbZ2fRa2kb009gbdy3AG1gqkyqEK56MlvQRU-3c4M3ANRZ9Wp7vZj3T1m0zzLfYjlHKnKJ3C5HQKEgN7_Ur_AtOctXpCqUYP_o1WPDQMsPirVCo7Niuf-632KT0MOH7FYB8bylX8VkAfDP87CKFnMp0Fzv42_YwDA9s8wsJqJ-8fvUWWmH_ngWDyZTd4-SeKatCIWp8ILAKpkRR-ULlN7HBq7_d6_7_84hUaqV46k9GLlvyXBkei81Ov_G_5jdzBFQHsCavQE3yT28_tZH970LRiNcubEg";
+            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwOTc4MDU2LCJuYmYiOjE1OTA5NzgwNTYsImV4cCI6MTU5MDk4MTk1NiwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBNFpFYmxYeFBiWWRwSW1CczB5M0RVeEtrVWdPbjcrRExORGhQTXpHTEVtV0RqTzgyNGpXTnkyelgvUWMzRFBIczAxNld2Y2ozOVkza0prK1UwcTVRU0pYZFl6NUYvSGVpNCs5Ym1IcWdkNkU9IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6IkpEcnVjV25JNEUySW45aVU1YUluQUEiLCJ2ZXIiOiIxLjAifQ.uxzGz9Mgn624o9tpiSjwiB-0SX3or1LetWlzk_iGkK_XNKly7d1HjNDIe5hfR__oR1gfJGMHSJkKWgvZnFu7nTCML76ajgaEcMQX1Pl2BxeR8EVyzCK4Au3p5tS1CRktwiTYIpFkC3ltK7Lt3kRJa3JXUBSdrlHpUOG3ZkJVw7CpoVNHUKVSXfEHVsKNE5JYV5gfTFDCV-3VW32I1OgAxK6zeDzmU5g5lIDksC75ZJBNEtW_kHgGHlMtG8LmvXImc27ro-Rmqbedq7jduPc9SleWCti_br-zoVXHkRByxlxhP27fDImNaMoOiXrEjRq4QstA67pke8-LYk77gqmV4g";
             TokenCredentials token = new TokenCredentials(accessToken);
             string subscriptionId = "faab228d-df7a-4086-991e-e81c4659d41a";
             string aadGuid = "3b3aabb6-ed1f-402e-a193-20bb269b8f36";
@@ -451,10 +567,26 @@ namespace ConsoleApp2
             //----------------------------------------------------------
             // Webapp + KeyVault: Validation via MSI
             //----------------------------------------------------------
-            //TODO: Check whether webapp's managed identity is enabled
+            //AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
+            //KeyVault key = new KeyVault(accessToken, subscriptionId, rgName, "bwsongkeyvault");
+            //Console.WriteLine(app.CheckManagedIdentity() && key.GetRoleAssignment(app.GetManagedIdentityPrincipalId()));
+
+            //----------------------------------------------------------
+            // Webapp + Storage: Connection via MSI
+            //----------------------------------------------------------
+            //AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
+            //Storage storage = new Storage(accessToken, subscriptionId, rgName, "bwsongstorage", "bwsongstoragecontainer", 0);
+            //app.SetAppSettings("Cupertino", storage.GetEndpoint());
+            //storage.SetManagedIdentity(app.GetManagedIdentityPrincipalId());
+
+            //----------------------------------------------------------
+            // Webapp + Storage: Validation via MSI
+            //----------------------------------------------------------
+            // Error in check app settings
             AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
-            KeyVault key = new KeyVault(accessToken, subscriptionId, rgName, "bwsongkeyvault");
-            Console.WriteLine(key.GetRoleAssignment(app.GetManagedIdentityPrincipalId()));
+            Storage storage = new Storage(accessToken, subscriptionId, rgName, "bwsongstorage", "bwsongstoragecontainer", 0);
+            Console.WriteLine(app.CheckManagedIdentity() && storage.GetRoleAssignment(app.GetManagedIdentityPrincipalId()));
+            //Console.WriteLine(app.CheckAppSettings(storage.GetEndpoint()));
         }
     }
 }

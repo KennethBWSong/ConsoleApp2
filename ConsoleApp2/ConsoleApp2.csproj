@@ -149,6 +149,9 @@
     <Reference Include="Microsoft.Azure.Management.Sql, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Azure.Management.Sql.1.42.0-preview\lib\net461\Microsoft.Azure.Management.Sql.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Azure.Management.Storage, Version=17.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Azure.Management.Storage.17.0.0\lib\net461\Microsoft.Azure.Management.Storage.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Azure.Management.Storage.Fluent, Version=1.0.0.66, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Azure.Management.Storage.Fluent.1.33.0\lib\net452\Microsoft.Azure.Management.Storage.Fluent.dll</HintPath>
     </Reference>
