@@ -20,6 +20,7 @@ using Microsoft.Azure.Management.Authorization;
 using Microsoft.Azure.Management.Authorization.Models;
 using Microsoft.Azure.Management.Storage;
 using Microsoft.Azure.Management.Network.Fluent.Models;
+using System.Runtime.InteropServices;
 
 namespace ConsoleApp2
 {
@@ -38,12 +39,15 @@ namespace ConsoleApp2
 
         public void SetManagedIdentity()
         {
-            _client.WebApps.Update(_rgName, _appName, new SitePatchResource { Identity = new ManagedServiceIdentity(ManagedServiceIdentityType.SystemAssigned)});
+            if (!CheckManagedIdentity())
+                _client.WebApps.Update(_rgName, _appName, new SitePatchResource { Identity = new ManagedServiceIdentity(ManagedServiceIdentityType.SystemAssigned)});
         }
 
         public string GetManagedIdentityPrincipalId()
         {
-            return _client.WebApps.Get(_rgName, _appName).Identity.PrincipalId;
+            if (CheckManagedIdentity())
+                return _client.WebApps.Get(_rgName, _appName).Identity.PrincipalId;
+            else return "Error. Managed Identity not enabled.";
         }
 
         public bool CheckManagedIdentity()
@@ -85,15 +89,13 @@ namespace ConsoleApp2
             _client.WebApps.Update(_rgName, _appName, new SitePatchResource { SiteConfig = new SiteConfig { AppSettings = appSettings } });
         }
 
-        // Error: settings = NULL
         public bool CheckAppSettings(string setting)
         {
-            IList<Microsoft.Azure.Management.WebSites.Models.NameValuePair> settings = _client.WebApps.GetConfiguration(_rgName, _appName).AppSettings;
-            Console.WriteLine(settings.Count);
-            //foreach (var item in )
-            //{
-            //    if (item.Value.Equals(setting)) return true;
-            //}
+            StringDictionary s = _client.WebApps.ListApplicationSettings(_rgName, _appName);
+            foreach (var item in s.Properties)
+            {
+                if (item.Value.Equals(setting)) return true;
+            }
             return false;
         }
 
@@ -499,7 +501,7 @@ namespace ConsoleApp2
     {
         static void Main(string[] args)
         {
-            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwOTc4MDU2LCJuYmYiOjE1OTA5NzgwNTYsImV4cCI6MTU5MDk4MTk1NiwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBNFpFYmxYeFBiWWRwSW1CczB5M0RVeEtrVWdPbjcrRExORGhQTXpHTEVtV0RqTzgyNGpXTnkyelgvUWMzRFBIczAxNld2Y2ozOVkza0prK1UwcTVRU0pYZFl6NUYvSGVpNCs5Ym1IcWdkNkU9IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6IkpEcnVjV25JNEUySW45aVU1YUluQUEiLCJ2ZXIiOiIxLjAifQ.uxzGz9Mgn624o9tpiSjwiB-0SX3or1LetWlzk_iGkK_XNKly7d1HjNDIe5hfR__oR1gfJGMHSJkKWgvZnFu7nTCML76ajgaEcMQX1Pl2BxeR8EVyzCK4Au3p5tS1CRktwiTYIpFkC3ltK7Lt3kRJa3JXUBSdrlHpUOG3ZkJVw7CpoVNHUKVSXfEHVsKNE5JYV5gfTFDCV-3VW32I1OgAxK6zeDzmU5g5lIDksC75ZJBNEtW_kHgGHlMtG8LmvXImc27ro-Rmqbedq7jduPc9SleWCti_br-zoVXHkRByxlxhP27fDImNaMoOiXrEjRq4QstA67pke8-LYk77gqmV4g";
+            string accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDcvIiwiaWF0IjoxNTkwOTg1NDg4LCJuYmYiOjE1OTA5ODU0ODgsImV4cCI6MTU5MDk4OTM4OCwiX2NsYWltX25hbWVzIjp7Imdyb3VwcyI6InNyYzEifSwiX2NsYWltX3NvdXJjZXMiOnsic3JjMSI6eyJlbmRwb2ludCI6Imh0dHBzOi8vZ3JhcGgud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3L3VzZXJzLzNiM2FhYmI2LWVkMWYtNDAyZS1hMTkzLTIwYmIyNjliOGYzNi9nZXRNZW1iZXJPYmplY3RzIn19LCJhY3IiOiIxIiwiYWlvIjoiQVZRQXEvOFBBQUFBR1VxR2huQVhJSk9iMUZqZkZhWVJmdCtLM00wdkQzTE83Y3R5REc0eTNzVkZyRGNMaVJOS1BQZ20vNG1WeDBRTTFpK0dRUll0R0NCdy91N2dzQWFhbGJhcmVLZGFhSzFWY28zVlBEWnhZbXc9IiwiYW1yIjpbIndpYSIsIm1mYSJdLCJhcHBpZCI6IjdmNTlhNzczLTJlYWYtNDI5Yy1hMDU5LTUwZmM1YmIyOGI0NCIsImFwcGlkYWNyIjoiMiIsImRldmljZWlkIjoiNjM4ZTdkMTgtNTEwYi00ZjUwLWIzMDgtYzNiYWVhZTFhNDdjIiwiZmFtaWx5X25hbWUiOiJTb25nIiwiZ2l2ZW5fbmFtZSI6IkJvd2VuIiwiaXBhZGRyIjoiMTY3LjIyMC4yNTUuMCIsIm5hbWUiOiJCb3dlbiBTb25nIiwib2lkIjoiM2IzYWFiYjYtZWQxZi00MDJlLWExOTMtMjBiYjI2OWI4ZjM2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTIxNDY3NzMwODUtOTAzMzYzMjg1LTcxOTM0NDcwNy0yNjExNjcxIiwicHVpZCI6IjEwMDMyMDAwQThCNTJBNkQiLCJyaCI6IjAuQVFFQXY0ajVjdkdHcjBHUnF5MTgwQkhiUjNPbldYLXZMcHhDb0ZsUV9GdXlpMFFhQUpnLiIsInNjcCI6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6IjYwQW5jTzQtMXRfeFMyYmFLQnZvemI3UDdlTGVJU092amFPRkIxVHUyVVEiLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInVwbiI6ImJvd3NvbmdAbWljcm9zb2Z0LmNvbSIsInV0aSI6IkNvZDRNZXk3OVV1bHRBVDZvalV0QUEiLCJ2ZXIiOiIxLjAifQ.UySLRwEwaG-aePZRcyy7ZODesV7-9mela9Vja3__MeMoAn8k-RbT9ONo6ouMDNXjLU1o2ROe2sUHOFLr0Bmp--QQBkFRAprQ12W81g2kOg6LU9a86T519EMv8Y5lW90SxQ8I1bcJYdVMx1_TFDrh8uWLkm6yUxXqoMzku1Bisy-N6hh6VHtI4Y36BYedzjrDfCldRkR1hRLannKhG4UxRIdL9D00HhzHHsyB6NEBor0QHSkW84TbepuBA91aklw6u3_1_l_HIuO8R98L6_hDMUzUxtdVOT_BQXEN7vjBSD6h80InzmKfvj_fy19dpiknNWd9tLhVidARFnC5KxzXlA";
             TokenCredentials token = new TokenCredentials(accessToken);
             string subscriptionId = "faab228d-df7a-4086-991e-e81c4659d41a";
             string aadGuid = "3b3aabb6-ed1f-402e-a193-20bb269b8f36";
@@ -582,11 +584,9 @@ namespace ConsoleApp2
             //----------------------------------------------------------
             // Webapp + Storage: Validation via MSI
             //----------------------------------------------------------
-            // Error in check app settings
             AppService app = new AppService(accessToken, subscriptionId, rgName, "bwsongapp");
             Storage storage = new Storage(accessToken, subscriptionId, rgName, "bwsongstorage", "bwsongstoragecontainer", 0);
-            Console.WriteLine(app.CheckManagedIdentity() && storage.GetRoleAssignment(app.GetManagedIdentityPrincipalId()));
-            //Console.WriteLine(app.CheckAppSettings(storage.GetEndpoint()));
+            Console.WriteLine(app.CheckManagedIdentity() && storage.GetRoleAssignment(app.GetManagedIdentityPrincipalId()) && app.CheckAppSettings(storage.GetEndpoint()));
         }
     }
 }
